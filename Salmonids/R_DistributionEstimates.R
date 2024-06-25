@@ -1,10 +1,32 @@
+#R_DistributionEstimates.R----
+
+# Nick Bertrand
+# Start Date: Tue Jun 25 11:58:59 2024
+
+#About----
+#Project: WY2024 OMR report
+#Purpose:This Script generates the figures for the distribution estimates made by Samt
+
+#Libraries ----
 library(tidyverse)
+library(readr)
 library(readxl)
 library(grid)
 library(gridExtra)
 
+# Set working directory ----
+#set to location of root object to highest tier directory
+getwd()
+root <- "C:/Users/nbertrand/OneDrive - DOI/Desktop/Bertrand/GitHub/omr_report_2024/Salmonids"
+setwd(root)
+getwd()
+#these root object use directories 
+data_root<-file.path(root,"data")
+viz_output_root <- file.path(root,"output")
+
+
 # Load distribution estimate data
-distribution_data<-read_excel(file.path("data","DistributionEstimates_WOMT_WY2023.xlsx"),sheet="DATA Dist WOMT Export OMRrange")
+distribution_data<-read_excel(file.path("data","DistributionEstimates_WOMT_WY2024.xlsx"),sheet="DATA Dist WOMT Export OMRrange")
 str(distribution_data)
 
 # Split range data into upper and lower dist estimates
@@ -41,7 +63,9 @@ distribution_data_edit$Date=as.Date(distribution_data_edit$Date)
 
 #Load monitoring csv data from SacPAS
 #https://www.cbr.washington.edu/sacramento/data/query_sampling_graph.html
-monitoring_data_raw <- read.csv(file.path("data","samplingdaily_1686867510_630.csv"))
+#query selections: 2023>Chinook,Winter,Unclipped >Sacramento River to Chipps island =.....>
+#Deselect cumulative sampling data> Select raw catch
+monitoring_data_raw <- read.csv(file.path("data","samplingdaily_1719344772_851.csv"))
 str(monitoring_data_raw)
 
 #Calculate percentage of sum
@@ -49,8 +73,8 @@ monitoring_data_WR <- monitoring_data_raw %>% rename(
   KL_RST=Raw.Knights.Landing.RST,
   SacSeine=Raw.Sacramento.Beach.Seines..SR080E.SR071E.SR062E.SR057E.SR055E.SR060E.AM001S.SR049E.,
   SacTrawl=Raw.Sacramento.Trawls..SR055M.SR055E.SR055W.SR055X.,
-  ChippsTrawl=Raw.Chipps.Island.Trawls..SB018M.SB018N.SB018S.SB018X.
-) %>% select(Date,KL_RST,SacSeine,SacTrawl,ChippsTrawl) %>%
+  ChippsTrawl=Raw.Chipps.Island.Trawls..SB018M.SB018N.SB018S.SB018X.) %>% 
+  select(Date,KL_RST,SacSeine,SacTrawl,ChippsTrawl) %>%
   mutate(Date=as.Date(Date)) %>% rowwise() %>% mutate(SacTrawl_Seine= sum(SacSeine, SacTrawl, na.rm = TRUE)) %>%
   ungroup() %>%
   filter(!is.na(Date)) %>% select(-c(SacSeine, SacTrawl)) %>%
@@ -66,15 +90,16 @@ monitoring_data_WR_sum <- monitoring_data_WR %>%
   mutate(Percent=Percent*100)
 
 monitoring_data_WR_sum$Category<-factor(monitoring_data_WR_sum$Category, levels=c('Reverse_KL_RST','SacTrawl_Seine_sum_minus_Chipps', 'ChippsTrawl_sum'))
-
+view(monitoring_data_WR_sum)
 ########################
 #Create figure for Natural Winter-run LAD distribution estimates
 str(distribution_data_edit)
 data_WR_nat<-distribution_data_edit %>% select(Date,Natural_WR_YTE,Natural_WR_ID,Natural_WR_E) %>% gather("Category","Percent",2:4) 
-
+#view(data_WR_nat)
 #Winter-run distribution estimates
+#remember to change axis dates
 plot_distest_WR_nat <- ggplot() +  
-  geom_line(data=data_WR_nat, aes(Date, Percent, colour=Category),size=1) + 
+  geom_line(data=data_WR_nat, aes(Date, Percent, colour=Category),linewidth=1) + 
   geom_ribbon(data=distribution_data_edit,aes(x=Date, ymax=Natural_WR_YTE_Upper, ymin=Natural_WR_YTE_Lower), 
               alpha=0.2,fill="blue")+
   geom_ribbon(data=distribution_data_edit,aes(x=Date, ymax=Natural_WR_ID_Upper, ymin=Natural_WR_ID_Lower), 
@@ -84,7 +109,7 @@ plot_distest_WR_nat <- ggplot() +
   theme_bw() +
   scale_x_date(date_breaks = "1 month",
                date_labels="%B",
-               limits = as.Date(c('2022-10-01','2023-07-01')))+
+               limits = as.Date(c('2023-10-01','2024-07-01')))+
   ggtitle("(A)")+
   theme(plot.title=element_text(size=13), 
                  axis.text.x=element_text(size=9, color="black"), 
@@ -104,7 +129,7 @@ plot_monitoring_WR_nat <- ggplot() +
   theme_bw() +
   scale_x_date(date_breaks = "1 month",
                date_labels="%B",
-               limits = as.Date(c('2022-10-01','2023-07-01')))+
+               limits = as.Date(c('2023-10-01','2024-07-01')))+
   ggtitle("(B)")+
   theme(plot.title=element_text(size=13), 
         axis.text.x=element_text(size=9, color="black"), 
@@ -120,7 +145,7 @@ plot_monitoring_WR_nat
 
 
 #Print figure
-tiff(filename=file.path("output","Figure_DistEst_WinterRun.tiff"),
+tiff(filename=file.path("viz_output_root","Figure_DistEst_WinterRun.tiff"),
      type="cairo",
      units="in", 
      width=8, #10*1, 

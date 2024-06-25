@@ -1,4 +1,3 @@
-
 library(tidyverse)
 library(rvest)
 library(lubridate)
@@ -9,51 +8,18 @@ library(sharpshootR)
 library(viridis)
 
 ##################### Load Salvage Count Data from SacPAS
-
-#Function adjusted from Trinh's code to pull salvage datasets from SacPAS
-pull_salvage <- function(salvageURL = "http://www.cbr.washington.edu/sacramento/data/query_loss_detail.html") {
-  startingSession <- session(salvageURL)
-  startingForm <- html_form(startingSession)[[1]]
-  
-  df <- lapply(startingForm$fields$year$options, function(x) {
-    filledForm <- set_values(startingForm,
-                             year = x,
-                             species = "1:f")
-    
-    submittedFormURL <- suppressMessages(submit_form(session = startingSession, 
-                                                     form = filledForm, POST = salvageURL)$url)
-    
-    csvLink <- submittedFormURL
-    
-    if (length(csvLink) == 0) {
-      return(NULL)
-    } else {
-      csvDownload <- csvLink
-    }
-    
-    df <- csvDownload %>% 
-      read_csv() %>% filter(!is.na(nfish)) }) %>%
-    bind_rows() 
-  df
-}
-###########################
-#Fig 31 Winter-run
-
-#Run actual function to load data
-salvage_data <- suppressWarnings(pull_salvage())
-salvage_data$SampleTime<-salvage_data$'Sample Time'
-salvage_data$Loss<-salvage_data$'LAD Loss'
-salvage_data$LAD_Race<-salvage_data$'LAD Race'
+salvage_data <- read.csv('https://www.cbr.washington.edu/sacramento/data/php/rpt/juv_loss_detail.php?sc=1&outputFormat=csv&year=all&species=1%3Af&dnaOnly=no&age=no')
 
 ### Subset December to May
-wr_salvage<-salvage_data %>% filter(LAD_Race=="Winter") %>% 
-  filter(month(SampleTime) %in% c(12,1,2,3,4,5)) %>% mutate(Year=year(SampleTime),WY=ifelse(month(SampleTime)>9,year(SampleTime)+1,year(SampleTime)),Month=month(SampleTime)) %>%
+wr_salvage<-salvage_data %>% filter(LAD.Race=="Winter") %>% 
+  filter(month(Sample.Time) %in% c(12,1,2,3,4,5)) %>% 
+  mutate(Year=year(Sample.Time),WY=ifelse(month(Sample.Time)>9,year(Sample.Time)+1,year(Sample.Time)),Month=month(Sample.Time)) %>%
   group_by(WY,Month) %>% summarise(Loss=sum(Loss)) %>% filter(WY>=2009)
 
 wr_salvage$Loss[is.na(wr_salvage$Loss)]<-0
 
-wr_salvage_wy_sum<-salvage_data %>% filter(LAD_Race=="Winter") %>% 
-  filter(month(SampleTime) %in% c(12,1,2,3,4,5)) %>% mutate(Year=year(SampleTime),WY=ifelse(month(SampleTime)>9,year(SampleTime)+1,year(SampleTime)),Month=month(SampleTime)) %>%
+wr_salvage_wy_sum<-salvage_data %>% filter(LAD.Race=="Winter") %>% 
+  filter(month(Sample.Time) %in% c(12,1,2,3,4,5)) %>% mutate(Year=year(Sample.Time),WY=ifelse(month(Sample.Time)>9,year(Sample.Time)+1,year(Sample.Time)),Month=month(Sample.Time)) %>%
   group_by(WY) %>% summarise(Loss=sum(Loss)) %>% filter(WY>=2009) %>% rename(WYLoss=Loss)
 
 wr_salvage<-left_join(wr_salvage,wr_salvage_wy_sum)
@@ -79,53 +45,28 @@ fig_WR_month<-ggplot(data=wr_salvage, aes(x=Month_abb, y=Percentage, fill=WY)) +
 fig_WR_month
 
 #Print figure
-tiff(filename=file.path("output","Figure_Winter-run_loss_by_month.tiff"),width=10,height = 6, units = "in",  res=300, compression ="lzw")
+tiff(filename=file.path("Salmonids","output","Figure_Winter-run_loss_by_month.tiff"),width=10,height = 6, units = "in",  res=300, compression ="lzw")
 fig_WR_month
 dev.off()
 
 
 ######################################################################
-#Function adjusted from Trinh's code to pull salvage datasets from SacPAS
-pull_salvage <- function(salvageURL = "http://www.cbr.washington.edu/sacramento/data/query_loss_detail.html") {
-  startingSession <- session(salvageURL)
-  startingForm <- html_form(startingSession)[[1]]
-  
-  df <- lapply(startingForm$fields$year$options, function(x) {
-    filledForm <- set_values(startingForm,
-                             year = x,
-                             species = "2:f")
-    
-    submittedFormURL <- suppressMessages(submit_form(session = startingSession, 
-                                                     form = filledForm, POST = salvageURL)$url)
-    
-    csvLink <- submittedFormURL
-    
-    if (length(csvLink) == 0) {
-      return(NULL)
-    } else {
-      csvDownload <- csvLink
-    }
-    
-    df <- csvDownload %>% 
-      read_csv() %>% filter(!is.na(nfish)) }) %>%
-    bind_rows() 
-  df
-}
+#pull salvage datasets from SacPAS
 
-#Run actual function to load data
-sth_salvage_data <- suppressWarnings(pull_salvage())
-sth_salvage_data$SampleTime<-as.Date(sth_salvage_data$'Sample Time')
+sth_salvage_data <- read.csv('https://www.cbr.washington.edu/sacramento/data/php/rpt/juv_loss_detail.php?sc=1&outputFormat=csv&year=all&species=2%3Af&dnaOnly=no&age=no')
 
 ##Format
 sth_salvage_data_split <- sth_salvage_data %>%
-  filter(month(SampleTime) %in% c(12,1,2,3,4,5,6)) %>% mutate(Year=year(SampleTime),WY=ifelse(month(SampleTime)>9,year(SampleTime)+1,year(SampleTime)),Month=month(SampleTime)) %>%
-  filter(WY>=2009) %>% filter(!(month(SampleTime)==6&day(SampleTime)>15)) %>% mutate(Group=as.factor(ifelse(month(SampleTime) %in% c(12,1,2,3),"DecMar","AprJun"))) %>%
+  mutate(Sample.Time = as.Date(Sample.Time)) %>%
+  filter(month(Sample.Time) %in% c(12,1,2,3,4,5,6)) %>% mutate(Year=year(Sample.Time),WY=ifelse(month(Sample.Time)>9,year(Sample.Time)+1,year(Sample.Time)),Month=month(Sample.Time)) %>%
+  filter(WY>=2009) %>% filter(!(month(Sample.Time)==6&day(Sample.Time)>15)) %>% mutate(Group=as.factor(ifelse(month(Sample.Time) %in% c(12,1,2,3),"DecMar","AprJun"))) %>%
   group_by(WY,Group) %>% summarise(Loss=sum(Loss))
 
 
-sth_salvage_data_wy_sum<-sth_salvage_data %>% 
-  filter(month(SampleTime) %in% c(12,1,2,3,4,5,6)) %>% mutate(Year=year(SampleTime),WY=ifelse(month(SampleTime)>9,year(SampleTime)+1,year(SampleTime)),Month=month(SampleTime)) %>%
-  filter(WY>=2009) %>% filter(!(month(SampleTime)==6&day(SampleTime)>15)) %>% mutate(Group=as.factor(ifelse(month(SampleTime) %in% c(12,1,2,3),"DecMar","AprJun"))) %>%
+sth_salvage_data_wy_sum<-sth_salvage_data %>%
+  mutate(Sample.Time = as.Date(Sample.Time)) %>%
+  filter(month(Sample.Time) %in% c(12,1,2,3,4,5,6)) %>% mutate(Year=year(Sample.Time),WY=ifelse(month(Sample.Time)>9,year(Sample.Time)+1,year(Sample.Time)),Month=month(Sample.Time)) %>%
+  filter(WY>=2009) %>% filter(!(month(Sample.Time)==6&day(Sample.Time)>15)) %>% mutate(Group=as.factor(ifelse(month(Sample.Time) %in% c(12,1,2,3),"DecMar","AprJun"))) %>%
   group_by(WY) %>% summarise(WYLoss=sum(Loss))
 
 
@@ -153,6 +94,6 @@ figure_sth_loss_group<-ggplot(data=sth_salvage_data_split, aes(x=WY, y=Percentag
 figure_sth_loss_group
 
 #Print figure
-tiff(filename=file.path("output","Figure_Steelhead_Loss_by_Group.tiff"),width=14,height = 10, units = "in",  res=300, compression ="lzw")
+tiff(filename=file.path("Salmonids","output","Figure_Steelhead_Loss_by_Group.tiff"),width=14,height = 10, units = "in",  res=300, compression ="lzw")
 figure_sth_loss_group
 dev.off()

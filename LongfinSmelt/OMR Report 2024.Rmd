@@ -14,7 +14,7 @@ library(ggpubr)
 ```
 # Chipps figure
 ```{r}
-#data provided by Stephen Staiger
+#data provided by Jonathan Speegle
 
 chipps <- read.csv("LongfinSmelt/Data/Chipps Island Trawls LFS Oct2022-Jun2023.csv", stringsAsFactors = F)
 chipps$SampleDate<-mdy(chipps$SampleDate)
@@ -123,7 +123,7 @@ surv <- su + geom_hline(yintercept=4, linetype="dashed", color = "black", size =
 surv
 
 #station plot------------------------------
-#sum by station
+#average by station
 csd.stat<-survey.csd %>% 
   group_by(SampleDate, SurveyType, Station) %>% 
   summarize("Count"= mean(Catch))
@@ -136,7 +136,7 @@ csd.stat$SampleDate <- factor(csd.stat$SampleDate, levels=c("12/19/22", "01/30/2
 s <- ggplot(data=csd.stat, aes(x=SampleDate, y=Count, fill=Station)) +
     geom_col(position = position_dodge2(width = 0.9, preserve = "single"), colour="black") +
     theme_bw() +
-    ylab("Catch per tow of LFS (at CSD stations)") +
+    ylab("Average catch per tow of LFS (at CSD stations)") +
     xlab("Survey Date") +
     scale_fill_viridis_d() #+
     #theme(axis.text.x = element_text(angle = 25))
@@ -160,13 +160,16 @@ ggsave("LongfinSmelt/Plots/survey_station_plot.png", height=8, width=7, units="i
 ```{r}
 #data from: Walter Griffiths
 
-salvage <- read.csv("LongfinSmelt/Data/Total.Salvage_2023.csv",  stringsAsFactors = F)
+salvage <- read.csv("LongfinSmelt/Data/Total.Salvage_2024.csv",  stringsAsFactors = F)
 salvage$Date<-mdy(salvage$DATE)
 
 #plot seasonal salvage
+salvage$State.Season.Salvage<-as.numeric(salvage$State.Season.Salvage)
+salvage$Federal.Season.Salvage<-as.numeric(salvage$Federal.Season.Salvage)
+
 sal <- ggplot() +
-    geom_line(data=salvage, aes(x=Date, y=State.Season.Salvage), color="blue", size=1) +
-    geom_line(data=salvage, aes(x=Date, y=Federal.Season.Salvage), color="orange", size=1) +
+    geom_line(data=salvage, aes(x=Date, y=State.Season.Salvage), color="blue", linewidth=1) +
+    geom_line(data=salvage, aes(x=Date, y=Federal.Season.Salvage), color="orange", linewidth=1, position=position_dodge(width=0.2)) +
     theme_bw() +
     ylab("LFS Seasonal Salvage") +
     xlab("Date") +
@@ -174,10 +177,10 @@ sal <- ggplot() +
     theme(axis.text = element_text(size = 12)) 
 
 #plot flow
-salvage$OMR <- as.numeric(salvage$Middle...Old.R.Net.Daily.Flow..cfs.)
+salvage$OMR <- as.numeric(gsub(",", "", salvage$Middle...Old.R.Net.Daily.Flow..cfs.))
 
 flow <- ggplot() +
-    geom_line(data=salvage, aes(x=Date, y= OMR), size=1) +
+    geom_line(data=salvage, aes(x=Date, y= OMR), linewidth=1) +
     theme_bw() +
     ylab("Middle + Old River net daily flow (cfs)") +
     xlab("Date") +

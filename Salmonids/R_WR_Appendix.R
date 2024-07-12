@@ -16,12 +16,13 @@ url_escapement <- "https://www.cbr.washington.edu/sacramento/data/php/rpt/grandt
 escapement <- read_csv(url_escapement) %>%
   mutate(Year2 = as.numeric(substr(Year, start = 1, stop = 4)),
          Year = factor(Year2)) %>%
-  filter(Year2 > report_year -11)
+  filter(Year2 > report_year -10)
 
 
 ## Make plot
 (plot_escapement <- ggplot(escapement) + 
   geom_col(aes(Year, Annual), fill = "steelblue4") +
+    geom_text(aes(Year, Annual +300, label = Annual), size = 4.5) + 
   geom_hline(yintercept = mean(escapement$Annual), linetype = "dashed") + 
   labs(y = "Escapement", x = "Brood Year")+
   theme_bw() +
@@ -32,8 +33,6 @@ escapement <- read_csv(url_escapement) %>%
 tiff("Salmonids/output/Figure_escapement.tiff", width = 7, height = 5, units = "in", res = 300, compression = "lzw")
 plot_escapement
 dev.off()
-
-
 
 # JPI ------------------------------
 jpi <- read.csv(here("Salmonids/data/JPI_2002_2023.csv")) %>%
@@ -121,4 +120,46 @@ tiff("Salmonids/output/Figure_etf.tiff", width = 7, height = 5, units = "in", re
 plot_etf
 dev.off()
 
-# Hatchery
+# Hatchery Survival ---------------------------------------------
+
+## Read in data. Add Brood year as a variable to match other plots
+hatchery <- readxl::read_excel(here::here("Salmonids/data/HatcheryWinterRunSurvival.xlsx")) %>%
+  mutate(BY = factor(BY),
+         Metric_label = case_when(Metric == "Benicia" ~ "Minimum Survival to Benicia Bridge East Span (95% CI)",
+                            Metric == "Delta" ~ "Minimum Through-Delta Survival (95% CI)"))
+
+## Separate out data
+hatchery_benicia <- hatchery %>% filter(Metric == "Benicia")
+hatchery_delta <- hatchery %>% filter(Metric == "Delta")
+
+## Benicia Plot
+ben <- ggplot(data = hatchery_benicia) + 
+  geom_point(aes(x = BY, y = Survival)) +
+  geom_errorbar(aes(x = BY, ymin = `95LCI`, ymax = `95UCI`), width = 0.1)+
+  geom_hline(aes(yintercept = mean(Survival)), linetype = "dashed", color = "maroon")+
+  labs(title = paste0("B) ",hatchery_benicia$Metric_label), x = "Brood Year", y  = "Survival (%)")+
+  theme_bw() +
+  theme(axis.text.x = element_text(size = 12),
+        axis.title = element_text(size = 13),
+        strip.text = element_text(size = 12))
+
+## Delta Plot
+delta <- ggplot(hatchery_delta) + 
+  geom_point(aes(BY, Survival)) +
+  geom_errorbar(aes(x = BY, ymin = `95LCI`, ymax = `95UCI`), width = 0.1)+
+  geom_hline(aes(yintercept = mean(Survival)), linetype = "dashed", color = "navy")+
+  labs(title = paste0("A) ", hatchery_delta$Metric_label), x = "Brood Year", y  = "Survival (%)")+
+  theme_bw() +
+  theme(axis.text.x = element_text(size = 12),
+        axis.title = element_text(size = 13),
+        strip.text = element_text(size = 12))
+
+## Combine plots
+library(patchwork) 
+(survival_plot <- delta / ben)
+
+## Write plot
+tiff("Salmonids/output/Figure_hatcherysurvival.tiff", width = 6, height =7, units = "in", res = 300, compression = "lzw")
+survival_plot
+dev.off()
+

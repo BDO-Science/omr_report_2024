@@ -99,25 +99,31 @@ csd.surv1<-survey.csd %>%
 
 csd.surv1$Detec <- ifelse(csd.surv1$Count>0, 1, 0)
 
+#create a new colunm for type and survey #
+csd.surv1$TypeSurv <- paste(csd.surv1$SurveyType, csd.surv1$Survey, sep=" ")
+
 #sum stations with detection by survey
 csd.surv<-csd.surv1 %>% 
-  group_by(SampleDate, SurveyType, Survey) %>% 
+  group_by(SurveyType, TypeSurv) %>% 
   summarize("detections"= sum(Detec))
 
-csd.surv$SampleDate <- factor(csd.surv$SampleDate, levels=c("12/11/23", "12/26/23", "01/08/24", "01/22/24", "02/05/24", "02/07/24", "02/20/24", "03/04/24", "03/18/24", "03/19/24", "04/02/24", "04/03/24", "04/15/24", "04/16/24", "04/29/24", "04/30/24", "05/13/24", "05/14/24", "05/28/24", "05/29/24", "06/10/24", "06/11/24", "06/24/24", "06/25/24"))
+#to determine order of the surveys
+#xx<-csd.surv1 %>% group_by(SurveyType, TypeSurv, SampleDate) %>% summarize("detections"= sum(Detec))
+
+csd.surv$TypeSurv <- factor(csd.surv$TypeSurv, levels=c("SLS 12", "SLS 13", "SLS 1", "SLS 2", "SLS 3", "SLS 4", "SLS 5",  "SLS 6", "20-mm 1", "20-mm 2", "20-mm 3", "20-mm 4", "20-mm 5", "20-mm 6", "20-mm 7", "20-mm 8"))
 csd.surv$SurveyType <- factor(csd.surv$SurveyType, levels=c("SLS", "20-mm"))
 
 #plot
 cbbPalette <- c("#999999", "#E69F00")
 
-su <- ggplot(data=csd.surv, aes(x=SampleDate, y=detections, fill=SurveyType)) +
+su <- ggplot(data=csd.surv, aes(x=TypeSurv, y=detections, fill=SurveyType)) +
     geom_bar(stat = "identity", position="dodge2", width = 0.6, colour="black") +
     theme_bw() +
     ylab("Count of CSD stations with LFS detections") +
-    xlab("Survey Date") +
+    xlab("Survey") +
     labs(fill='Survey') +
     scale_fill_manual(values=cbbPalette) +
-    theme(axis.text.x = element_text(angle = 90))
+    theme(axis.text.x = ele7ment_text(angle = 90))
 su
 surv <- su + geom_hline(yintercept=4, linetype="dashed", color = "black", size = .8)
 surv
@@ -125,15 +131,20 @@ surv
 #station plot------------------------------
 #average by station
 csd.stat<-survey.csd %>% 
-  group_by(SampleDate, SurveyType, Station) %>% 
+  group_by(TypeSurv, SurveyType, Station) %>% 
   summarize("Count"= mean(Catch))
 
-csd.stat$SampleDate <- as.character(csd.stat$SampleDate)
+csd.stat$TypeSurv <- factor(csd.stat$TypeSurv, levels=c("SLS 12", "SLS 13", "SLS 1", "SLS 2", "SLS 3", "SLS 4", "SLS 5",  "SLS 6", "20-mm 1", "20-mm 2", "20-mm 3", "20-mm 4", "20-mm 5", "20-mm 6", "20-mm 7", "20-mm 8"))
 
-csd.stat$SampleDate <- factor(csd.stat$SampleDate, levels=c("12/11/23", "12/26/23", "01/08/24", "01/22/24", "02/05/24", "02/07/24", "02/20/24", "03/04/24", "03/18/24", "03/19/24", "04/02/24", "04/03/24", "04/15/24", "04/16/24", "04/29/24", "04/30/24", "05/13/24", "05/14/24", "05/28/24", "05/29/24", "06/10/24", "06/11/24", "06/24/24", "06/25/24"))
+#see which stations had catch
+catch <- filter(csd.stat, Count > 0)
+unique(catch$Station)
+
+#filter to just these stations to make the plot easier to view
+csd.stat2 <- filter(csd.stat, Station %in% c("809", "812", "815", "901", "902"))
 
 #plot catch by station
-s <- ggplot(data=csd.stat, aes(x=SampleDate, y=Count, fill=Station)) +
+s <- ggplot(data=csd.stat2, aes(x=TypeSurv, y=Count, fill=Station)) +
     geom_col(position = position_dodge2(width = 0.9, preserve = "single"), colour="black") +
     theme_bw() +
     ylab("Average catch per tow of LFS (at CSD stations)") +
@@ -147,7 +158,7 @@ stat
 #combine----------------------------------
 
 figure <- ggarrange(surv, stat,
-                    labels = c("A", "B"),
+                    labels = c("A)", "B)"), hjust = -2.5, vjust = 2.5,
                     ncol = 1, nrow = 2)
 figure
 

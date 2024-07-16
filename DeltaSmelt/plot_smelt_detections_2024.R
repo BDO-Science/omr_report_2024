@@ -78,22 +78,25 @@ data_salvage <- read_excel(here::here("DeltaSmelt/data/Salvage_2024.xlsx")) %>%
   select(SampleDate, Source, Gear, Station, LifeStage, Catch, Mark) %>%
   left_join(sta_all)
 
-# USFWS Adult (EDSM Kodiak and DFJFMP)
-data_usfwsA <- read_excel(here::here("DeltaSmelt/data/SMT_Adult_Data_2024.xlsx")) %>%
-  filter(Source %in% c("EDSM", "DJFMP Electrofishing")) %>%
-  mutate(Station = as.character(Station),
-         Station = replace(Station, Station == "Tracy", "TFCF")) %>%
+# USFWS 
+data_usfws <- read_excel(here::here("DeltaSmelt/data/USFWS_DSM_Catch_WY2024_20240711.xlsx"), 
+                         sheet = 2) %>%
+  mutate(Station = as.character(StationCode)) %>%
+  select(SampleDate, Source=Survey, Gear, Station, 
+         LifeStage,Catch, Mark=MarkCode, 
+         Latitude= LatitudeTarget, Longitude=LongitudeTarget)
+
+## USFWS Adult (Kodiak)
+data_usfwsA <- data_usfws %>%
+filter(Gear%in% c("Kodiak", "E-fishing"))  %>%
   select(SampleDate, Source, Gear, Station, LifeStage,Catch, Mark, Latitude, Longitude)
 
-# USFWS Larvae/Juveniles (EDSM Phase 2)
-data_edsmL <- read_excel(here::here("DeltaSmelt/data/USFWS_EDSM_Larvae_2024.xlsx")) %>%
-  filter(OrganismCode == "DSM") %>%
-  mutate(Source = "EDSM",
-         LifeStage = if_else(ForkLength>19, "Juvenile", if_else(ForkLength>58, "Adult", "Larva"))) %>%
-  select(SampleDate, Source, Gear=MethodCode, Station=StationCode, 
-         LifeStage, Catch=SumOfCatchCount, Mark=MarkCode, Latitude = LatitudeStart, Longitude = LongitudeStart)
+## USFWS Larvae/Juveniles (20mm Phase 2)
+data_usfwsL <- data_usfws %>%
+  filter(Gear == "20mm") %>%
+  select(SampleDate, Source, Gear, Station, LifeStage,Catch, Mark, Latitude, Longitude)
 
-allsmelt <- bind_rows(data_salvage, data_usfwsA, data_20mm, data_edsmL) %>%
+allsmelt <- bind_rows(data_salvage, data_usfwsA, data_20mm, data_usfwsL) %>%
   group_by(SampleDate, Source, Gear, Station, LifeStage, Mark, Latitude, Longitude) %>%
   summarize(Catch = sum(Catch, na.rm = TRUE)) %>%
   ungroup()
@@ -106,17 +109,30 @@ allsmelt_sf <- allsmelt %>%
 sum(allsmelt$Catch)
 
 # Separate out datasets for adult vs larval/juvenile
-adult <- allsmelt_sf %>% filter(Gear %in% c("Kodiak", "Electrofishing")|(Source == "CVP Salvage" & LifeStage == "Adult")) 
-larval <- allsmelt_sf %>% filter(Gear == "20mm" | (Source == "CVP Salvage" & LifeStage != "Adult")) #missing one larva - come back and check
+adult <- allsmelt_sf %>% 
+  filter(Gear %in% c("Kodiak", "E-fishing")|(Source == "CVP Salvage" & LifeStage == "Adult"))  %>%
+  group_by(Station, Source) %>%
+  summarize(totalCatch = sum(Catch))
+larval <- allsmelt_sf %>% 
+  filter(Gear == "20mm" | (Source == "CVP Salvage" & LifeStage != "Adult")) %>%
+  group_by(Station, Source, LifeStage) %>%
+  summarize(totalCatch = sum(Catch))
 
+larval %>%
+  group_by(LifeStage) %>%
+  summarize(total = sum(totalCatch))
+sum(adult$totalCatch)
 
+mark <- allsmelt%>%
+  group_by(Gear, LifeStage, Mark) %>%
+  summarize(total = sum(Catch))
 ## Create maps ----------------------------
 
 # Adult
 (map_detections_a <- ggplot() + 
     geom_sf(data = WW_Delta, color = "darkslategray3") +
-    geom_sf(data = R_EDSM_Strata_1718P1, aes(fill = Stratum), alpha = 0.5,inherit.aes = FALSE)+
-    geom_sf(data = adult, aes(shape = Source, size = Catch), size =2.5,  inherit.aes = FALSE) + 
+    geom_sf(data = R_EDSM_Strata_1718P1, aes(fill = Stratum), alpha = 0.4,inherit.aes = FALSE)+
+    geom_sf(data = adult, aes(shape = Source, size = totalCatch),  inherit.aes = FALSE) + 
     geom_sf(data = releases_sf, shape = 23, size =3,  fill = "red", color = "black", inherit.aes = FALSE) + 
     geom_sf_text(data = skt_sf, mapping = aes(label = Station), size = 3, nudge_x = -0.012, nudge_y = 0.016) +
     annotation_north_arrow(location = "tl", which_north = "true",
@@ -140,11 +156,10 @@ larval <- allsmelt_sf %>% filter(Gear == "20mm" | (Source == "CVP Salvage" & Lif
 # Larval
 (map_detections_l <- ggplot() + 
     geom_sf(data = WW_Delta, color = "darkslategray3") +
-    geom_sf(data = R_EDSM_Strata_1718P1, aes(fill = Stratum), alpha = 0.5,inherit.aes = FALSE)+
-    
-    geom_sf(data = larval, aes(shape = Source, size = Catch), size =2.5,  inherit.aes = FALSE) + 
+    geom_sf(data = R_EDSM_Strata_1718P1, aes(fill = Stratum), alpha = 0.4,inherit.aes = FALSE)+
+    geom_sf(data = larval, aes(shape = Source, size = totalCatch),   inherit.aes = FALSE) + 
     geom_sf(data = releases_sf, shape = 23, size =3,  fill = "red", color = "black", inherit.aes = FALSE) + 
-    geom_sf_text(data = sls_sf, mapping = aes(label = Station), size = 3, nudge_x = -0.012, nudge_y = 0.016) +
+    # geom_sf_text(data = sls_sf, mapping = aes(label = Station), size = 3, nudge_x = -0.012, nudge_y = 0.016) +
     annotation_north_arrow(location = "tl", which_north = "true",
                            pad_x = unit(.1, "in"), pad_y = unit(0.2, "in"),
                            style = north_arrow_fancy_orienteering) +
@@ -183,7 +198,7 @@ adult_releases <- left_join(adult, releases) %>%
                            pad_x = unit(.1, "in"), pad_y = unit(0.2, "in"),
                            style = north_arrow_fancy_orienteering) +
     annotation_scale(location = "bl", bar_cols = c("black", "white", "black", "white")) +
-    scale_fill_manual(values = c(viridis(7, option = "turbo"), "gray50")) + 
+    scale_fill_manual(values = c(viridis(8, option = "turbo"), "gray50")) + 
     viridis::scale_color_viridis(option = "turbo", discrete = TRUE) +
     # scale_shape_manual(values = c(21, 9)) +
     scale_size_manual(values = c(3, 6)) +
@@ -214,17 +229,39 @@ dev.off()
 # Region/life stage plots ----------------------------------------------
 allsmelt_NAD <- st_transform(allsmelt_sf, crs = st_crs(R_EDSM_Regions_1718P1))
 smelt_region <- st_join(allsmelt_NAD, R_EDSM_Regions_1718P1) %>%
-  mutate(Stage = if_else(LifeStage == "Adult", "Adult", 
-                         if_else(LifeStage == "Larva", "Juveniles/Larva",
-                                 if_else(LifeStage == "Juvenile" & Gear == "Kodiak", "Adult", "Juveniles/Larva")))) %>%
-  mutate(Region = if_else(Source == "CVP Salvage", "Salvage", Region))
+  mutate(Stage = if_else(LifeStage %in% c("Adult","Adult (cultured)"), "Adult", 
+                         if_else(LifeStage == "Larva", "Juveniles/Larvae",
+                                 if_else(LifeStage == "Juvenile" & Gear == "Kodiak", "Adult", "Juveniles/Larvae")))) %>%
+  mutate(Region = if_else(Source == "CVP Salvage", "Salvage", Region)) %>%
+  mutate(Week = week(SampleDate))
 
-tiff("DeltaSmelt/output/Figure_Catch_over_time_2024.tiff", width = 6.5, height = 6, units = "in", res = 300, compression = "lzw")
-ggplot(smelt_region) + 
-  geom_col(aes(SampleDate, Catch, fill = Region), color = "black") +
+smelt_region_totals <- smelt_region %>%
+  sf::st_drop_geometry() %>%
+  group_by(Week)%>%
+  mutate(Date = first(SampleDate)) %>%
+  ungroup() %>%
+  group_by(Week, Date, Stage, Region) %>%
+  summarize(Total = sum(Catch)) %>%
+  ungroup() 
+  
+
+ggplot(smelt_region_totals) + 
+  geom_col(aes(Date, Total, fill = Region), color = "black") +
   facet_wrap(Stage~., nrow = 2, scales = "free") +
   scale_x_datetime(date_breaks = "2 weeks", date_labels = "%b-%d")+
-  scale_fill_viridis(option = "turbo", discrete = TRUE) + 
+  scale_fill_viridis(option = "viridis", discrete = TRUE) + 
+  theme_bw()+
+  theme(legend.position = "top",
+        axis.text.x = element_text(angle = 90),
+        axis.title.x = element_blank())
+
+tiff("DeltaSmelt/output/Figure_Catch_over_time_2024.tiff", width = 6.5, height = 7, units = "in", res = 300, compression = "lzw")
+ggplot(smelt_region_totals) + 
+  geom_col(aes(Date, Total, fill = Region), color = "black") +
+  facet_wrap(Stage~., nrow = 2, scales = "free") +
+  scale_x_datetime(date_breaks = "2 weeks", date_labels = "%b-%d")+
+  scale_fill_viridis(option = "viridis", discrete = TRUE) + 
+  labs(y = "Catch") +
   theme_bw()+
   theme(legend.position = "top",
         axis.text.x = element_text(angle = 90),

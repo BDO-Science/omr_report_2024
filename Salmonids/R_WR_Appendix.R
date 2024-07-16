@@ -47,7 +47,7 @@ jpi <- read.csv(here("Salmonids/data/JPI_2002_2023.csv")) %>%
   mutate(BY = factor(BY)) 
 
 (plot_jpi <- ggplot(jpi) + 
-    geom_col(aes(BY, JPI), fill = "#C69214", alpha = 0.8, width = 0.8) +
+    geom_col(aes(BY, JPI), fill = "palegreen4", alpha = 0.8, width = 0.8) +
     geom_text(aes(BY, JPI+0.15, label = JPI_lab), size = 4.5) + 
     geom_hline(yintercept = mean(jpi$JPI), linetype = "dashed") + 
     labs(y = "Juvenile Production Index (millions)") +
@@ -87,6 +87,18 @@ tdm_long <- tdm %>%
 
 yrcolors <- rev(tdm$color)
 
+(plot_tdm_only<- ggplot(tdm) + 
+    geom_col(aes(Brood.Year, TDM_NOAA_percent), fill = "steelblue", alpha = 0.8) +
+    geom_text(aes(Brood.Year, TDM_NOAA_percent +2, label = TDM_NOAA_percent), size =  4) + 
+    geom_hline(yintercept = mean(tdm$TDM_NOAA_percent), linetype = "dashed") + 
+    labs(y = "Temperature Dependent\n Mortality (%)", x = "Brood Year") +
+    # scale_y_continuous(expand = c(0,0)) + 
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 0.5, vjust = 0.5, size = 12),
+          axis.text.y = element_text(size = 12),
+          axis.title = element_text(size = 13),
+          axis.title.x = element_blank()))
+
 (plot_tdm <- ggplot(tdm_long, aes(Brood.Year.Type, Percent, fill = Fate)) + 
     geom_col(width = 0.65, alpha = 0.9) +
     geom_text(aes(label = Percent_label), position = position_stack(vjust = 0.5), size = 5) +
@@ -100,7 +112,7 @@ yrcolors <- rev(tdm$color)
           legend.title = element_blank()))
 
 (plot_etf <- ggplot(jpi) + 
-    geom_col(aes(BY, ETF_Survival), fill = "#007396", alpha = 0.8, width = 0.8) +
+    geom_col(aes(BY, ETF_Survival), fill = "goldenrod", alpha = 0.8, width = 0.8) +
     geom_text(aes(BY, ETF_Survival +1, label = ETF_Survival_lab), size =  4) + 
     geom_hline(yintercept = mean(jpi$ETF_Survival), linetype = "dashed") + 
     labs(y = "Egg-to-Fry Survival (%)") +
@@ -114,6 +126,10 @@ yrcolors <- rev(tdm$color)
 ## Write plot
 tiff("Salmonids/output/Figure_tdm.tiff", width = 7, height = 5, units = "in", res = 300, compression = "lzw")
 plot_tdm
+dev.off()
+
+tiff("Salmonids/output/Figure_tdm_only.tiff", width = 7, height = 4, units = "in", res = 300, compression = "lzw")
+plot_tdm_only
 dev.off()
 
 tiff("Salmonids/output/Figure_etf.tiff", width = 7, height = 5, units = "in", res = 300, compression = "lzw")

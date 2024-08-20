@@ -92,9 +92,13 @@ filter(Gear%in% c("Kodiak", "E-fishing"))  %>%
   select(SampleDate, Source, Gear, Station, LifeStage,Catch, Mark, Latitude, Longitude)
 
 ## USFWS Larvae/Juveniles (20mm Phase 2)
-data_usfwsL <- data_usfws %>%
+data_usfwsL <- read_excel(here::here("DeltaSmelt/data/USFWS_DSM_Catch_WY2024_20240815.xlsx"), 
+                          sheet = 2) %>%
   filter(Gear == "20mm") %>%
-  select(SampleDate, Source, Gear, Station, LifeStage,Catch, Mark, Latitude, Longitude)
+  mutate(Station = as.character(StationCode)) %>%
+  select(SampleDate, Source=Survey, Gear, Station, 
+         LifeStage,Catch, Mark=MarkCode, 
+         Latitude= LatitudeTarget, Longitude=LongitudeTarget)
 
 allsmelt <- bind_rows(data_salvage, data_usfwsA, data_20mm, data_usfwsL) %>%
   group_by(SampleDate, Source, Gear, Station, LifeStage, Mark, Latitude, Longitude) %>%
@@ -122,6 +126,7 @@ larval %>%
   group_by(LifeStage) %>%
   summarize(total = sum(totalCatch))
 sum(adult$totalCatch)
+
 
 mark <- allsmelt%>%
   group_by(Gear, LifeStage, Mark) %>%
@@ -218,7 +223,7 @@ tiff("DeltaSmelt/output/Figure_map_adultDS.tiff", width = 7, height = 7.5, units
 map_detections_a
 dev.off()
 
-tiff("DeltaSmelt/output/Figure_map_ljuvDS.tiff", width = 7.5, height = 8.5, units = "in", res = 300, compression = "lzw")
+tiff("DeltaSmelt/output/Figure_map_ljuvDS.tiff", width = 7.8, height = 8.5, units = "in", res = 300, compression = "lzw")
 map_detections_l
 dev.off()
 

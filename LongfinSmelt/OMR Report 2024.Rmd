@@ -36,7 +36,7 @@ ggsave("LongfinSmelt/Plots/chipps_plot.png", height=4, width=7, units="in")
 ```{r}
 #data provided by Vanessa Mora
 
-twentymm <- read.csv("LongfinSmelt/Data/20-mm LFS Catch Data 2024.csv", stringsAsFactors = F)
+twentymm <- read.csv("LongfinSmelt/Data/20-mm LFS Catch Data 2024 updated.csv", stringsAsFactors = F)
 twentymm$SampleDate<-mdy(twentymm$Date)
 twentymm$SurveyType <- "20-mm"
 
@@ -69,7 +69,7 @@ month2<-survey %>%
 
 #plot
 
-month2$my <- factor(month2$my, levels=c("12/23", "01/24", "02/24", "03/24", "04/24", "05/24", "06/24"))
+month2$my <- factor(month2$my, levels=c("12/23", "01/24", "02/24", "03/24", "04/24", "05/24", "06/24", "07/24"))
 
 ggplot(data=month2, aes(x=my, y=Count, fill=Region)) +
     geom_bar(stat = "identity", position="dodge2",  colour="black") +

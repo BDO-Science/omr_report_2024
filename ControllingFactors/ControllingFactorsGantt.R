@@ -6,24 +6,22 @@ library(ggplot2)
 library(readr)
 library(vistime)
 library(readxl)
-
+library(plotly)
 
 # #ControlFactorTime <- read_delim("ControlFactorTime.txt", 
 #                                 "/t", escape_double = FALSE, col_types = cols(start = col_character()), 
 #                                 trim_ws = TRUE)
 
 
-ControlFactorTime <- read_excel("C:/Users/nbertrand/Desktop/Bertrand/GitHub/OMRSeasonalReport/omr_report_2023/ControllingFactors/WY2023/ControllinginputFile_20230710.xlsx", 
-                                                    sheet = "Controlling Periods 2023")
-#View(ControlFactorTime)
-
+ControlFactorTime <- read_excel("ControllingFactors/ControllinginputFile_20240725.xlsx", 
+                                            sheet = "Controlling Periods 2024")
 
 #View(ControlFactorTime)
+
 ControlFactorTime$start <- as.Date(ControlFactorTime$start)
 ControlFactorTime$end <- as.Date(ControlFactorTime$end)
 
 
-library(plotly)
 t1 <- vistime(ControlFactorTime, optimize_y = T, col.group = "group", col.color = "color",show_labels = FALSE)
 #t2<- t1 %>% layout(title = "Time Series with Custom Date-Time Format", xaxis = list(type = 'date', tickformat = "%Y",autotick = F, dtick = "%m"))
 
@@ -33,8 +31,6 @@ t1 %>% layout(xaxis=list(fixedrange=TRUE, tickfont=list(size=30, color="black",t
               yaxis=list(fixedrange=TRUE, tickfont=list(size=30, color="black"), tickangle=30, mirror = FALSE, range = c(0.7, 3.5), showgrid = T))
 t1
 
-?layout
-?vistime
 
 
 ##################################

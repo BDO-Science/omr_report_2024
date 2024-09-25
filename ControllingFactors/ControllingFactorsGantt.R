@@ -27,8 +27,8 @@ t1 <- vistime(ControlFactorTime, optimize_y = T, col.group = "group", col.color 
 
 #t2
 
-t1 %>% layout(xaxis=list(fixedrange=TRUE, tickfont=list(size=30, color="black",type = 'date', tickformat = "%Y",autotick = F, dtick = "%m")), 
-              yaxis=list(fixedrange=TRUE, tickfont=list(size=30, color="black"), tickangle=30, mirror = FALSE, range = c(0.7, 3.5), showgrid = T))
+t1 %>% layout(xaxis=list(fixedrange=TRUE, tickfont=list(size=50, color="black",type = 'date', tickformat = "%Y",autotick = F, dtick = "%m")), 
+              yaxis=list(fixedrange=TRUE, tickfont=list(size=75, color="black"), tickangle=30, mirror = FALSE, range = c(0.7, 3.5), showgrid = T))
 t1
 
 
@@ -37,12 +37,13 @@ t1
 ############
 #####
 #this file was just made in excel based on the information in the Controlling Factors Table WY 2023_v4.xlsx file
-library(readxl)
-BalEx <- read_excel("ControllingFactors/WY2023/BalancedVSExcessWY2023.xlsx")
+
+BalEx <- read_excel("ControllingFactors/BalancedVSExcessWY2024.xlsx")
+
 #View(BalEx)
 
 
-b1 <- vistime(BalEx, optimize_y = T, col.group = "group", col.color = "color",,show_labels = FALSE)
+b1 <- vistime(BalEx, optimize_y = T, col.group = "group", col.color = "color",show_labels = FALSE)
 #t2<- t1 %>% layout(title = "Time Series with Custom Date-Time Format", xaxis = list(type = 'date', tickformat = "%Y",autotick = F, dtick = "%m"))
 
 #t2

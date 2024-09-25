@@ -14,9 +14,9 @@ library(ggpubr)
 ```
 # Chipps figure
 ```{r}
-#data provided by Stephen Staiger
+#data provided by Jonathan Speegle
 
-chipps <- read.csv("LongfinSmelt/Data/Chipps Island Trawls LFS Oct2022-Jun2023.csv", stringsAsFactors = F)
+chipps <- read.csv("LongfinSmelt/Data/Chipps Island Trawls LFS Oct2023-Jun2024.csv", stringsAsFactors = F)
 chipps$SampleDate<-mdy(chipps$SampleDate)
 
 #filter to >60mm
@@ -36,17 +36,17 @@ ggsave("LongfinSmelt/Plots/chipps_plot.png", height=4, width=7, units="in")
 ```{r}
 #data provided by Vanessa Mora
 
-twentymm <- read.csv("LongfinSmelt/Data/20-mm LFS Catch Data 2023.csv", stringsAsFactors = F)
-twentymm$SampleDate<-mdy(twentymm$SampleDate)
+twentymm <- read.csv("LongfinSmelt/Data/20-mm LFS Catch Data 2024 updated.csv", stringsAsFactors = F)
+twentymm$SampleDate<-mdy(twentymm$Date)
 twentymm$SurveyType <- "20-mm"
 
-sls <- read.csv("LongfinSmelt/Data/SLS LFS Catch Data 2023.csv", stringsAsFactors = F)
+sls <- read.csv("LongfinSmelt/Data/SLS LFS Catch Data 2024.csv", stringsAsFactors = F)
 sls$SampleDate<-mdy(sls$Date)
 sls$SurveyType <- "SLS"
 
 #combine datasets
-twentymm2 <- twentymm[c(1:4, 7:10)]
-sls2 <- sls[c(1,3:4,6:10)]
+twentymm2 <- twentymm[c(1,3:4, 8:11)]
+sls2 <- sls[c(1,3:4,7:10)]
 
 survey <- rbind(twentymm2,sls2)
 survey$my <- format(as.Date(survey$SampleDate, format="%m/%Y/%d"),"%m/%y")
@@ -69,11 +69,11 @@ month2<-survey %>%
 
 #plot
 
-month2$my <- factor(month2$my, levels=c("12/22", "01/23", "02/23", "03/23", "04/23", "05/23", "06/23"))
+month2$my <- factor(month2$my, levels=c("12/23", "01/24", "02/24", "03/24", "04/24", "05/24", "06/24", "07/24"))
 
 ggplot(data=month2, aes(x=my, y=Count, fill=Region)) +
     geom_bar(stat = "identity", position="dodge2",  colour="black") +
-    facet_wrap(~SurveyType, ncol=1) +
+    facet_wrap(~SurveyType, ncol=1, scales = "free_y") +
     theme_bw() +
     ylab("Count of LFS") +
     xlab("Month") +
@@ -97,49 +97,60 @@ csd.surv1<-survey.csd %>%
   group_by(SampleDate, SurveyType, Station, Survey) %>% 
   summarize("Count"= sum(Catch))
 
-csd.surv1$Detec <- 1
+csd.surv1$Detec <- ifelse(csd.surv1$Count>0, 1, 0)
+
+#create a new colunm for type and survey #
+csd.surv1$TypeSurv <- paste(csd.surv1$SurveyType, csd.surv1$Survey, sep=" ")
 
 #sum stations with detection by survey
 csd.surv<-csd.surv1 %>% 
-  group_by(SampleDate, SurveyType, Survey) %>% 
+  group_by(SurveyType, TypeSurv) %>% 
   summarize("detections"= sum(Detec))
 
-csd.surv$SampleDate <- factor(csd.surv$SampleDate, levels=c("12/19/22", "01/30/23", "02/13/23", "02/27/23", "03/13/23"))
+#to determine order of the surveys
+#xx<-csd.surv1 %>% group_by(SurveyType, TypeSurv, SampleDate) %>% summarize("detections"= sum(Detec))
+
+csd.surv$TypeSurv <- factor(csd.surv$TypeSurv, levels=c("SLS 12", "SLS 13", "SLS 1", "SLS 2", "SLS 3", "SLS 4", "SLS 5",  "SLS 6", "20-mm 1", "20-mm 2", "20-mm 3", "20-mm 4", "20-mm 5", "20-mm 6", "20-mm 7", "20-mm 8"))
 csd.surv$SurveyType <- factor(csd.surv$SurveyType, levels=c("SLS", "20-mm"))
 
 #plot
 cbbPalette <- c("#999999", "#E69F00")
 
-su <- ggplot(data=csd.surv, aes(x=SampleDate, y=detections, fill=SurveyType)) +
+su <- ggplot(data=csd.surv, aes(x=TypeSurv, y=detections, fill=SurveyType)) +
     geom_bar(stat = "identity", position="dodge2", width = 0.6, colour="black") +
     theme_bw() +
     ylab("Count of CSD stations with LFS detections") +
-    xlab("Survey Date") +
+    xlab("Survey") +
     labs(fill='Survey') +
-    scale_fill_manual(values=cbbPalette) #+
-   # theme(axis.text.x = element_text(angle = 25))
+    scale_fill_manual(values=cbbPalette) +
+    theme(axis.text.x = ele7ment_text(angle = 90))
 su
 surv <- su + geom_hline(yintercept=4, linetype="dashed", color = "black", size = .8)
 surv
 
 #station plot------------------------------
-#sum by station
+#average by station
 csd.stat<-survey.csd %>% 
-  group_by(SampleDate, SurveyType, Station) %>% 
+  group_by(TypeSurv, SurveyType, Station) %>% 
   summarize("Count"= mean(Catch))
 
-csd.stat$SampleDate <- as.character(csd.stat$SampleDate)
+csd.stat$TypeSurv <- factor(csd.stat$TypeSurv, levels=c("SLS 12", "SLS 13", "SLS 1", "SLS 2", "SLS 3", "SLS 4", "SLS 5",  "SLS 6", "20-mm 1", "20-mm 2", "20-mm 3", "20-mm 4", "20-mm 5", "20-mm 6", "20-mm 7", "20-mm 8"))
 
-csd.stat$SampleDate <- factor(csd.stat$SampleDate, levels=c("12/19/22", "01/30/23", "02/13/23", "02/27/23", "03/13/23"))
+#see which stations had catch
+catch <- filter(csd.stat, Count > 0)
+unique(catch$Station)
+
+#filter to just these stations to make the plot easier to view
+csd.stat2 <- filter(csd.stat, Station %in% c("809", "812", "815", "901", "902"))
 
 #plot catch by station
-s <- ggplot(data=csd.stat, aes(x=SampleDate, y=Count, fill=Station)) +
+s <- ggplot(data=csd.stat2, aes(x=TypeSurv, y=Count, fill=Station)) +
     geom_col(position = position_dodge2(width = 0.9, preserve = "single"), colour="black") +
     theme_bw() +
-    ylab("Catch per tow of LFS (at CSD stations)") +
+    ylab("Average catch per tow of LFS (at CSD stations)") +
     xlab("Survey Date") +
-    scale_fill_viridis_d() #+
-    #theme(axis.text.x = element_text(angle = 25))
+    scale_fill_viridis_d() +
+    theme(axis.text.x = element_text(angle = 90))
 s
 stat <- s + geom_hline(yintercept=5, linetype="dashed", color = "black", size = .8)
 stat
@@ -147,7 +158,7 @@ stat
 #combine----------------------------------
 
 figure <- ggarrange(surv, stat,
-                    labels = c("A", "B"),
+                    labels = c("A)", "B)"), hjust = -2.5, vjust = 2.5,
                     ncol = 1, nrow = 2)
 figure
 
@@ -160,13 +171,16 @@ ggsave("LongfinSmelt/Plots/survey_station_plot.png", height=8, width=7, units="i
 ```{r}
 #data from: Walter Griffiths
 
-salvage <- read.csv("LongfinSmelt/Data/Total.Salvage_2023.csv",  stringsAsFactors = F)
+salvage <- read.csv("LongfinSmelt/Data/Total.Salvage_2024.csv",  stringsAsFactors = F)
 salvage$Date<-mdy(salvage$DATE)
 
 #plot seasonal salvage
+salvage$State.Season.Salvage<-as.numeric(salvage$State.Season.Salvage)
+salvage$Federal.Season.Salvage<-as.numeric(salvage$Federal.Season.Salvage)
+
 sal <- ggplot() +
-    geom_line(data=salvage, aes(x=Date, y=State.Season.Salvage), color="blue", size=1) +
-    geom_line(data=salvage, aes(x=Date, y=Federal.Season.Salvage), color="orange", size=1) +
+    geom_line(data=salvage, aes(x=Date, y=State.Season.Salvage), color="blue", linewidth=1) +
+    geom_line(data=salvage, aes(x=Date, y=Federal.Season.Salvage), color="orange", linewidth=1, position=position_dodge(width=0.2)) +
     theme_bw() +
     ylab("LFS Seasonal Salvage") +
     xlab("Date") +
@@ -174,10 +188,10 @@ sal <- ggplot() +
     theme(axis.text = element_text(size = 12)) 
 
 #plot flow
-salvage$OMR <- as.numeric(salvage$Middle...Old.R.Net.Daily.Flow..cfs.)
+salvage$OMR <- as.numeric(gsub(",", "", salvage$Middle...Old.R.Net.Daily.Flow..cfs.))
 
 flow <- ggplot() +
-    geom_line(data=salvage, aes(x=Date, y= OMR), size=1) +
+    geom_line(data=salvage, aes(x=Date, y= OMR), linewidth=1) +
     theme_bw() +
     ylab("Middle + Old River net daily flow (cfs)") +
     xlab("Date") +

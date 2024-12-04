@@ -25,7 +25,7 @@ data_root<-file.path(root,"data")
 viz_output_root <- file.path(root,"output")
 
 
-# Load distribution estimate data
+# Load distribution estimate data ----
 distribution_data<-read_excel(file.path("data","DistributionEstimates_WOMT_WY2024.xlsx"),sheet="DATA Dist WOMT Export OMRrange")
 str(distribution_data)
 
@@ -61,7 +61,7 @@ distribution_data_edit <- dist_est_split(datafile=distribution_data_edit,old_col
 
 distribution_data_edit$Date=as.Date(distribution_data_edit$Date)
 
-#Load monitoring csv data from SacPAS
+#Load monitoring csv data from SacPAS----
 #https://www.cbr.washington.edu/sacramento/data/query_sampling_graph.html
 #query selections: 2023>Chinook,Winter,Unclipped >Sacramento River to Chipps island =.....>
 #Deselect cumulative sampling data> Select raw catch
@@ -92,11 +92,11 @@ monitoring_data_WR_sum <- monitoring_data_WR %>%
 monitoring_data_WR_sum$Category<-factor(monitoring_data_WR_sum$Category, levels=c('Reverse_KL_RST','SacTrawl_Seine_sum_minus_Chipps', 'ChippsTrawl_sum'))
 view(monitoring_data_WR_sum)
 ########################
-#Create figure for Natural Winter-run LAD distribution estimates
+#Create figure for Natural Winter-run LAD distribution estimates----
 str(distribution_data_edit)
 data_WR_nat<-distribution_data_edit %>% select(Date,Natural_WR_YTE,Natural_WR_ID,Natural_WR_E) %>% gather("Category","Percent",2:4) 
 #view(data_WR_nat)
-#Winter-run distribution estimates
+#Winter-run distribution estimates ----
 #remember to change axis dates
 plot_distest_WR_nat <- ggplot() +  
   geom_line(data=data_WR_nat, aes(Date, Percent, colour=Category),linewidth=1) + 
@@ -145,7 +145,7 @@ plot_monitoring_WR_nat
 
 
 #Print figure
-tiff(filename=file.path("viz_output_root","Figure_DistEst_WinterRun.tiff"),
+tiff(filename="C:/Users/nbertrand/OneDrive - DOI/Desktop/Bertrand/GitHub/omr_report_2024/Salmonids/output/Figure_DistEst_WinterRun.tiff",
      type="cairo",
      units="in", 
      width=8, #10*1, 
@@ -159,7 +159,7 @@ dev.off()
 
 ###################
 
-#Create figure for Spring-run LAD distribution estimates
+#Create figure for Spring-run LAD distribution estimates----
 data_SR<-distribution_data_edit %>% select(Date,Natural_SR_YTE,Natural_SR_ID,Natural_SR_E) %>% gather("Category","Percent",2:4) 
 
 #Spring-run distribution estimates
@@ -174,7 +174,7 @@ plot_distest_SR <- ggplot() +
   theme_bw() +
   scale_x_date(date_breaks = "1 month",
                date_labels="%B",
-               limits = as.Date(c('2022-10-01','2023-07-01')))+
+               limits = as.Date(c('2023-10-01','2024-07-01')))+
   theme(plot.title=element_text(size=13), 
         axis.text.x=element_text(size=9, color="black"), 
         axis.text.y = element_text(size=8, color="black"), 
@@ -202,10 +202,10 @@ dev.off()
 
 ###################
 
-#Create figure for Steelhead distribution estimates
+#Create figure for Steelhead distribution estimates----
 data_SH<-distribution_data_edit %>% select(Date,Natural_SH_YTE,Natural_SH_ID,Natural_SH_E) %>% gather("Category","Percent",2:4) 
 
-#Spring-run distribution estimates
+#Steelhead distribution estimates
 plot_distest_SH <- ggplot() +  
   geom_line(data=data_SH, aes(Date, Percent, colour=Category),size=1) + 
   geom_ribbon(data=distribution_data_edit,aes(x=Date, ymax=Natural_SH_YTE_Upper, ymin=Natural_SH_YTE_Lower), 
@@ -217,7 +217,7 @@ plot_distest_SH <- ggplot() +
   theme_bw() +
   scale_x_date(date_breaks = "1 month",
                date_labels="%B",
-               limits = as.Date(c('2022-10-01','2023-07-01')))+
+               limits = as.Date(c('2023-10-01','2024-07-01')))+
   theme(plot.title=element_text(size=13), 
         axis.text.x=element_text(size=9, color="black"), 
         axis.text.y = element_text(size=8, color="black"), 
@@ -245,8 +245,11 @@ dev.off()
 ###################################################################
 
 #Load hatchery winter-run acoustic dataset
-acoustic_data_raw <- read.csv(file.path("data","HatcheryWR_acoustic_data.csv")) %>%
-  mutate(Date=as.Date(Date,"%m/%d/%Y"))
+#Data set copy and pasted from table 4.3
+#https://oceanview.pfeg.noaa.gov/CalFishTrack/pageLSWR_2024.html
+#format the date and headers correctly
+acoustic_data_raw <- read_excel(file.path(data_root,"HatcheryWR_acoustic_data.xlsx"))# %>%
+  #mutate(Date=as.Date(Date,"%m/%d/%Y"))
 str(acoustic_data_raw)
 
 acoustic_data <- acoustic_data_raw %>% select(Date,MeridianBr,TowerBridge, Benicia_east) %>%
@@ -266,7 +269,7 @@ plot_monitoring_WR_hat <- ggplot() +
   theme_bw() +
   scale_x_date(date_breaks = "1 month",
                date_labels="%B",
-               limits = as.Date(c('2022-10-01','2023-07-01')))+
+               limits = as.Date(c('2023-10-01','2024-07-01')))+
   ggtitle("(B)")+
   theme(plot.title=element_text(size=13), 
         axis.text.x=element_text(size=9, color="black"), 
@@ -295,7 +298,7 @@ plot_distest_WR_hat <- ggplot() +
   theme_bw() +
   scale_x_date(date_breaks = "1 month",
                date_labels="%B",
-               limits = as.Date(c('2022-10-01','2023-07-01')))+
+               limits = as.Date(c('2023-10-01','2024-07-01')))+
   ggtitle("(A)")+
   theme(plot.title=element_text(size=13), 
         axis.text.x=element_text(size=9, color="black"), 

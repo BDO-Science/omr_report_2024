@@ -1,10 +1,11 @@
 library(tidyverse)
 library(busdater)
 library(ggridges)
+library(viridis)
 
-#############RST summary
+#################### RST summary
 query <- expand.grid(site = c('TIS', 'KNL', 'LFR', 'LSR', 'LAR'), year = seq(2009,2023,1))
-dataList <- list()
+rstList <- list()
 
 for(i in 1:nrow(query)){
   site = query$site[i]
@@ -16,11 +17,11 @@ for(i in 1:nrow(query)){
     rename('Catch' = 2)
   
   if (ncol(temp) >= 3) {
-    dataList[[index]] <- temp
+    rstList[[index]] <- temp
   }
 }
 
-data <- bind_rows(dataList) %>% 
+data <- bind_rows(rstList) %>% 
   mutate(Date = as.Date(Date)) %>%
   filter(!is.na(Date)) %>%
   mutate(WY = get_fy(Date, opt_fy_start = '10-01'))
@@ -34,9 +35,10 @@ summary <- data %>% group_by(WY) %>%
   mutate(Method = factor(Method, levels = c('CPUE (fish/trap)', 'Active Traps', 'Raw Catch')))
 
 graph <- ggplot(summary) +
-  geom_col(aes(x = factor(WY), y = Catch, fill = Method), position = 'dodge') + 
+  geom_col(aes(x = factor(WY), y = Catch, fill = Method), position = 'dodge', color = 'black') + 
   labs(x = 'Water Year', y = 'Count', fill = '') +
   facet_wrap(~Method, ncol = 1, scales = 'free_y') + 
+  scale_fill_viridis(discrete=TRUE, option="cividis") +
   theme_bw() +
   theme(plot.margin = ggplot2::margin(0.5,0.5,0.25,0.25, unit = 'cm'),
         axis.title.x = element_text(margin=ggplot2::margin(t=10)),
@@ -102,6 +104,60 @@ CumulLoss <- ggplot() +
 CumulLoss
 
 ggsave(CumulLoss, file = 'Salmonids/appendix_outputs/cumuLoss.png')
+
+#################### Trawl data summary
+query <- expand.grid(site = c('SR055', 'SJ054', 'SB018'), year = seq(2009,2023,1))
+trawlList <- list()
+
+for(i in 1:nrow(query)){
+  site = query$site[i]
+  year = query$year[i]
+  index = paste0(site,'_',year)
+  url <- paste0('https://www.cbr.washington.edu/sacramento/data/php/rpt/sampling_graph.php?sc=1&outputFormat=csv&year='
+                ,year,'&species=RBT%3ANA&loc=trawl%3A',site,'%3A1&typeData=raw')
+  
+  temp <- read.csv(url) %>% mutate(site = site) %>%
+    rename('Catch' = 2, 'Samples' = 3)
+  
+  if (ncol(temp) >= 3) {
+    trawlList[[index]] <- temp
+  }
+}
+
+data2 <- bind_rows(trawlList) %>% 
+  mutate(Date = as.Date(Date)) %>%
+  filter(!is.na(Date)) %>%
+  mutate(WY = get_fy(Date, opt_fy_start = '10-01')) %>%
+  mutate(site = case_when(site == 'SR055' ~ 'Sherwood',
+                          site == 'SJ054' ~ 'Mossdale',
+                          site == 'SB018' ~ 'Chipps'))
+
+summary2 <- data2 %>% group_by(WY, site) %>%
+  summarize(`Raw Catch` = sum(Catch, na.rm = TRUE),
+            `Number of Hauls` = sum(Samples, na.rm = TRUE)) %>%
+  mutate(`CPUE (fish/haul)` = `Raw Catch`/`Number of Hauls`) %>%
+  gather(key = 'Method', value = 'Catch', 3:5) %>%
+  mutate(Method = factor(Method, levels = c('CPUE (fish/haul)', 'Number of Hauls', 'Raw Catch')),
+         site = factor(site, levels = c('Sherwood', 'Mossdale', 'Chipps'), 
+                       labels = c('Sacramento River (Sherwood)', 'San Joaquin River (Mossdale)',
+                                        'Chipps Island'))) %>%
+  filter(WY > 2009)
+
+graph2 <- ggplot(summary2) +
+  geom_col(aes(x = factor(WY), y = Catch, fill = site), color = 'black') + 
+  labs(x = 'Water Year', y = 'Count', fill = '') +
+  facet_wrap(~Method, ncol = 1, scales = 'free_y') + 
+  scale_fill_viridis(discrete=TRUE, option="cividis") +
+  theme_bw() +
+  theme(plot.margin = ggplot2::margin(0.5,0.5,0.25,0.25, unit = 'cm'),
+        axis.title.x = element_text(margin=ggplot2::margin(t=10)),
+        axis.title.y = element_text(margin=ggplot2::margin(r=10)),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
+        legend.position = 'bottom')
+graph2
+
+ggsave(graph2, file = 'Salmonids/appendix_outputs/Trawlgraph.png', units = 'in', height = 7.5, width = 6.5)
+
 #################### Historic natural vs. hatchery Steelhead loss and FL histograms over time
 
 #importing, cleaning, and summarizing data from SacPAS
@@ -115,8 +171,9 @@ historic <- loss2 %>%
   group_by(WY, Adipose.Clip) %>%
   summarize(Loss = sum(Loss)) %>%
   ggplot() + 
-  geom_col(aes(x = factor(WY), y = Loss, fill = Adipose.Clip), position = 'dodge') +
+  geom_col(aes(x = factor(WY), y = Loss, fill = Adipose.Clip), position = 'dodge', color = 'black') +
   labs(x = 'Water Year', y = 'Total Loss') +
+  scale_fill_viridis(discrete=TRUE, option="cividis") +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
         legend.title = element_blank(),

@@ -99,7 +99,7 @@ axis(1, at=at, format(at, "%Y"), cex.axis = .7)
 lines(wr_salvage_data_cumulative$Date, wr_salvage_data_cumulative$CumBO_Loss, col = "black", type = "l", lty = 1)
 par(new=TRUE)
 plot(deg45_line$Date, deg45_line$deg45_line, col = "blue", type = "l", lty = 2, xaxt = "n", yaxt="n", xlab=NA,ylab=NA)
-legend("bottomleft", legend = c("Cumulative Loss", "Total Loss allowed for life of PA", "45 degree line"), inset=c(0,-0.4),
+legend("bottomleft", legend = c("Cumulative Loss", "Total Loss allowed for life of PA", "Hypothetical Uniform Loss"), inset=c(0,-0.4),
        col=c("green","black","blue"), lty=c(1,1,2), lwd=c(2,1,1),bty = "n", xpd=TRUE, mar(c(7,7,11,7)), cex = 0.8)
 
 dev.off()
@@ -226,7 +226,7 @@ axis(1, at=at1, format(at1, "%Y"), cex.axis = .7)
 lines(sth_salvage_data_cumulative_Dec_March$Date, sth_salvage_data_cumulative_Dec_March$CumBO_Loss, col = "black", type = "l", lty = 1)
 lines(deg45_line_Dec_March$Date, deg45_line_Dec_March$WR_45deg, col = "blue", type = "l", lty = 2)
 
-legend("bottomleft", legend = c("Steelhead Dec-Mar Cumulative Loss", "Total Loss allowed for life of PA", "45 degree line"), inset=c(0,-0.4),
+legend("bottomleft", legend = c("Steelhead Dec-Mar Cumulative Loss", "Total Loss allowed for life of PA", "Hypothetical Uniform Loss"), inset=c(0,-0.4),
        col=c("green","black","blue"), lty=c(1,1,2), lwd=c(2,1,1),bty = "n", xpd=TRUE, mar(c(7,7,11,7)), cex = 0.8)
 
 par(mar = c(8.1, 4.1, 4.1, 4.1))
@@ -235,6 +235,6 @@ axis(1, at=at1, format(at1, "%Y"), cex.axis = .7)
 lines(sth_salvage_data_cumulative_Apr_Jun$Date, sth_salvage_data_cumulative_Apr_Jun$CumBO_Loss, col = "black", type = "l", lty = 1)
 lines(deg45_line_Apr_Jun$Date, deg45_line_Apr_Jun$WR_45deg, col = "blue", type = "l", lty = 2)
 
-legend("bottomleft", legend = c("Steelhead Apr-Jun Cumulative Loss", "Total Loss allowed for life of PA", "45 degree line"), inset=c(0,-0.4),
+legend("bottomleft", legend = c("Steelhead Apr-Jun Cumulative Loss", "Total Loss allowed for life of PA", "Hypothetical Uniform Loss"), inset=c(0,-0.4),
        col=c("green","black","blue"), lty=c(1,1,2), lwd=c(2,1,1),bty = "n", xpd=TRUE, mar(c(7,7,11,7)), cex = 0.8)
 dev.off()

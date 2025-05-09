@@ -58,14 +58,13 @@ releases_sf <- releases %>%
 ## Read in fish data ----------------------------------------------
 
 # Just SLS and 20mm here
-data_20mm <- read_excel(here::here("DeltaSmelt/data/CDFW_20mm_20240708.xlsx")) %>%
+data_20mm <- read_excel(here::here("DeltaSmelt/data/CDFW_20mm_20241204.xlsx")) %>%
   mutate(Source = "20-mm",
          Gear = "20mm",
          Station = as.character(Station),
          Catch =1,
          LifeStage = if_else(Length>19, "Juvenile", if_else(Length>58, "Adult", "Larva"))) %>%
   select(SampleDate, Source, Gear, Station, LifeStage, Catch) %>%
-  distinct() %>%
   left_join(sta_all)
 
 # Salvage Data. From SMT spreadsheet
@@ -117,6 +116,11 @@ adult <- allsmelt_sf %>%
   filter(Gear %in% c("Kodiak", "E-fishing")|(Source == "CVP Salvage" & LifeStage == "Adult"))  %>%
   group_by(Station, Source) %>%
   summarize(totalCatch = sum(Catch))
+adult_mark <- allsmelt_sf %>%
+  filter(Gear %in% c("Kodiak", "E-fishing")|(Source == "CVP Salvage" & LifeStage == "Adult"))  %>%
+  group_by(Station, Source, Mark) %>%
+  summarize(totalCatch = sum(Catch))
+
 larval <- allsmelt_sf %>% 
   filter(Gear == "20mm" | (Source == "CVP Salvage" & LifeStage != "Adult")) %>%
   group_by(Station, Source, LifeStage) %>%
@@ -184,13 +188,13 @@ mark <- allsmelt%>%
           legend.text = element_text(size = 9)))
 
 # Releases
-adult_releases <- left_join(adult, releases) %>%
+
+adult_releases <- left_join(adult_mark, releases) %>%
   rename(Release_Event = Release) %>%
   mutate(Release_Event = if_else(is.na(Release_Event), "Not tagged", Release_Event)) %>%
   mutate(Release = if_else(!is.na(Event), "Release Event", "Not tagged")) %>%
   mutate(Release_Event = factor(Release_Event, levels = c("11/15 LS Hard","12/12 Hard", 
-                                              "12/14 Soft","12/19 Hard", "12/20 Trailer", 
-                                              "1/10 LS Hard","1/24 Hard",
+                                              "12/14 Soft", "1/10 LS Hard","1/24 Hard",
                                               "1/25 Soft","1/30 Soft","1/31 Trailer", "Not tagged")))
        
 (map_detections <- ggplot() + 
@@ -232,45 +236,43 @@ map_detections
 dev.off()
 
 # Region/life stage plots ----------------------------------------------
+
+# Had to revise the groupings to distinguish Hypomesus from Delta Smelt. Can remove the mutate(Group....) lines 
+# in subsequent years if this issues does not exist
+
 allsmelt_NAD <- st_transform(allsmelt_sf, crs = st_crs(R_EDSM_Regions_1718P1))
 smelt_region <- st_join(allsmelt_NAD, R_EDSM_Regions_1718P1) %>%
   mutate(Stage = if_else(LifeStage %in% c("Adult","Adult (cultured)"), "Adult", 
                          if_else(LifeStage == "Larva", "Juveniles/Larvae",
                                  if_else(LifeStage == "Juvenile" & Gear == "Kodiak", "Adult", "Juveniles/Larvae")))) %>%
   mutate(Region = if_else(Source == "CVP Salvage", "Salvage", Region)) %>%
-  mutate(Week = week(SampleDate))
+  mutate(Week = week(SampleDate)) %>%
+  mutate(Group = case_when(Stage == "Adult" ~ "Adult",
+                           Stage == "Juveniles/Larvae" & Source == "USFWS EDSM" ~ "Juvenile/Larvae Hypomesus",
+                           Stage == "Juveniles/Larvae" & (Source == "20-mm" | Source == "CVP Salvage") ~ "Juvenile/Larvae Delta Smelt"))
 
 smelt_region_totals <- smelt_region %>%
   sf::st_drop_geometry() %>%
   group_by(Week)%>%
   mutate(Date = first(SampleDate)) %>%
   ungroup() %>%
-  group_by(Week, Date, Stage, Region) %>%
+  group_by(Week, Date, Group, Region) %>%
   summarize(Total = sum(Catch)) %>%
   ungroup() 
   
 
+tiff("DeltaSmelt/output/Figure_Catch_over_time_2024.tiff", width = 6.3, height = 8, units = "in", res = 300, compression = "lzw")
 ggplot(smelt_region_totals) + 
   geom_col(aes(Date, Total, fill = Region), color = "black") +
-  facet_wrap(Stage~., nrow = 2, scales = "free") +
-  scale_x_datetime(date_breaks = "2 weeks", date_labels = "%b-%d")+
-  scale_fill_viridis(option = "viridis", discrete = TRUE) + 
-  theme_bw()+
-  theme(legend.position = "top",
-        axis.text.x = element_text(angle = 90),
-        axis.title.x = element_blank())
-
-tiff("DeltaSmelt/output/Figure_Catch_over_time_2024.tiff", width = 6.5, height = 7, units = "in", res = 300, compression = "lzw")
-ggplot(smelt_region_totals) + 
-  geom_col(aes(Date, Total, fill = Region), color = "black") +
-  facet_wrap(Stage~., nrow = 2, scales = "free") +
+  facet_wrap(Group~., nrow = 3, scales = "free") +
   scale_x_datetime(date_breaks = "2 weeks", date_labels = "%b-%d")+
   scale_fill_viridis(option = "viridis", discrete = TRUE) + 
   labs(y = "Catch") +
   theme_bw()+
   theme(legend.position = "top",
         axis.text.x = element_text(angle = 90),
-        axis.title.x = element_blank())
+        axis.title.x = element_blank(),
+        plot.margin = margin(10, 20, 10, 10))
 dev.off()
 
 # Salvage plot -------------------------------
